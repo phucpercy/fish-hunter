@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1, user-scalable=no">
+	<title>websocket-java-socketio</title>
+	<script src="https://cdn.bootcss.com/socket.io/2.2.0/socket.io.js"></script>
+</head>
+
+<body>
+	<h1>Socket.io Test</h1>
+	<div>
+		<p id="status">Waiting for input</p>
+	</div>
+	<div>
+		<p id="message">hello world!</p>
+	</div>
+	<button id="connect" onClick="connect()" >Connect</button>
+	<button id="disconnect" onClick="disconnect()">Disconnect</button>
+	<button id="send" onClick="send()" >Send Message</button>
+</body>
+
+<script type="text/javascript">
+	/**
+	 *  front end js Of  socket.emit(" Event name "," Parameter data ") Method , It is used when triggering backend custom message events ,
+	 *  front end js Of  socket.on(" Event name ", Anonymous functions ( Data sent by the server to the client )) To listen for server-side Events 
+	 **/
+	var socket = io.connect("http://localhost:8082?gameId=2");
+	var firstconnect = true;
+	
+
+	function connect() {
+		if (firstconnect) {
+			//socket.on('reconnect', function(){ status_update("Reconnected to Server"); });
+			//socket.on('reconnecting', function( nextRetry ){ status_update("Reconnecting in "
+			//+ nextRetry + " seconds"); });
+			//socket.on('reconnect_failed', function(){ message("Reconnect Failed"); });
+			//firstconnect = false;
+		} else {
+			socket.socket.reconnect();
+		}
+	}
+
+	// Listen for server connection Events 
+	socket.on('connect', function () {
+		
+		status_update("Connected to Server");
+
+	});
+	// Listen for server shutdown Events 
+	socket.on('disconnect', function () {
+		status_update("Disconnected from Server");
+	});
+	// Listen to the server sending message event 
+	socket.on('messageevent', function (data) {
+		message(data)
+		//console.log(" The message sent by the server is ："+data);
+	});
+	socket.on('concumessage', function (data) {
+		message(data)
+		//console.log(" The message sent by the server is ："+data);
+	});
+
+	// disconnect 
+	function disconnect() {
+		socket.disconnect();
+		firstconnect = false;
+	}
+
+	function message(data) {
+		document.getElementById('message').innerHTML = "Server says: " + data;
+	}
+
+	function status_update(txt) {
+		document.getElementById('status').innerHTML = txt;
+	}
+
+	function esc(msg) {
+		return msg.replace(/</g, '<').replace(/>/g, '>');
+	}
+	// Click send message to trigger 
+	function send() {
+		console.log(" Click send message , Start sending messages to the server ")
+		var msg = " I'm fine , Yes ．";
+		socket.emit('messageevent', msg);
+	};
+</script>
+
+</html>
