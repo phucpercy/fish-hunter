@@ -101,11 +101,16 @@ public class PlayerService {
         return playerGame;
     }
 
+    private void removeMemberFromRoom(Room room, Player player) {
+
+        roomMemberRepository.deleteRoomMemberByPrimaryKeyRoomIdAndPrimaryKeyPlayerId(room.getId(), player.getId());
+    }
+
     public RoomDto join(RoomDto roomDto, Player player) throws Exception {
         Room room = roomRepository.findOneById(roomDto.getId());
 
         if (!room.getStatus().equals(RoomStatus.WAITING) || isPlayerInRoom(player, room)
-            || room.getRoomMembers().size() >= room.getRoomType().getNumberOfPlayerByType()) {
+                || room.getRoomMembers().size() >= room.getRoomType().getNumberOfPlayerByType()) {
             throw new Exception("This room not available!");
         }
 
@@ -141,6 +146,8 @@ public class PlayerService {
     }
 
     public RoomDto leave(RoomDto roomDto, Player player) {
+        Room room = roomRepository.findOneById(roomDto.getId());
+        removeMemberFromRoom(room, player);
         return null;
     }
 }

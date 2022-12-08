@@ -15,4 +15,5 @@ public class SocketEventMessage {
     public static final String COMMON_DATA = "common_data";
     public static final String MEMBER_LEFT = "member_left";
     public static final String POINT_CHANGED = "point_changed";
+    public static final String GENERATE_FISH_SERIES = "generate_fish_series";
 }

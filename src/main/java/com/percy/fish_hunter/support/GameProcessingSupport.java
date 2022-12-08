@@ -10,6 +10,7 @@ import com.percy.fish_hunter.repository.GameRepository;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.repository.RoomRepository;
+import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.service.PlayerService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class GameProcessingSupport {
     public static final int DEFAULT_READY_TIME = 10 * 1000;
     public static final int DEFAULT_TOTAL_PLAY_TIME = DEFAULT_GAME_TIME + DEFAULT_READY_TIME;
 
+    private final GameService gameService;
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
     private final GameRepository gameRepository;
@@ -107,8 +109,16 @@ public class GameProcessingSupport {
                 finishGame(game);
             } else if (passedTime >= DEFAULT_READY_TIME) {
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
-                    .sendEvent(SocketEventMessage.TIME_LEFT, (int) (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000);
+                        .sendEvent(SocketEventMessage.TIME_LEFT, (int) (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000);
             }
         });
+    }
+
+    @Scheduled(fixedRate = 1000)
+    public void emitGenerateFishAsset() {
+        var res = gameService.generateSeriesFishAsset(10);
+
+        server.getRoomOperations("")
+                .sendEvent(SocketEventMessage.GENERATE_FISH_SERIES, res);
     }
 }

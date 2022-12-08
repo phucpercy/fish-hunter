@@ -14,6 +14,4 @@ public interface GameRepository extends JpaRepository<Game, Integer> {
 	List<Game> findAll(Sort sort);
 
 	List<Game> findAllByStatus(GameStatus status);
-
-	void
 }
