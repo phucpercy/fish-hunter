@@ -84,7 +84,7 @@ public class GameService {
     }
 
     public Collection<FishAssetResponse> generateSeriesFishAsset(int amount) {
-        Collection<FishAssetResponse> res = new ArrayList<FishAssetResponse>();
+        Collection<FishAssetResponse> res = new ArrayList<>();
 
         for (int i = 0; i < amount; ++i) {
             res.add(generateFishAsset());
