@@ -7,6 +7,7 @@ import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.percy.fish_hunter.converter.RoomConverter;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.repository.RoomRepository;
+import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.support.SocketClientManagement;
 import com.percy.fish_hunter.support.SocketEventMessage;
 import lombok.AllArgsConstructor;
@@ -28,6 +29,7 @@ public class MessageEventHandler {
 	private final RoomRepository roomRepository;
 	private final RoomConverter roomConverter;
 	private final RoomMemberRepository roomMemberRepository;
+	private final GameService gameService;
 
 	@OnConnect
 	public void onconnect(SocketIOClient client) {
@@ -46,10 +48,11 @@ public class MessageEventHandler {
 
 	@OnDisconnect
 	public void onDisconnect(SocketIOClient client) {
-		Integer playerId = Integer.valueOf(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
+		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
+		gameService.handleInGameDisconnectRoomMember(playerId);
 		var disconnectedClient = socketClientManagement.removeDisconnectedClient(playerId);
 		disconnectedClient.getAllRooms().forEach(room -> {
-			if (!room.equals(DEFAULT_GENERAL_ROOM)) {
+			if (!room.equals(DEFAULT_GENERAL_ROOM) && !room.equals("")) {
 				var roomId = Integer.parseInt(room);
 				var roomDto = roomConverter.toDto(roomRepository.findOneById(roomId));
 				server.getRoomOperations(room).sendEvent(SocketEventMessage.MEMBER_LEFT, roomDto);

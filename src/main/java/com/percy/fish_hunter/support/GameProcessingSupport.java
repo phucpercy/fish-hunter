@@ -2,6 +2,7 @@ package com.percy.fish_hunter.support;
 
 import com.corundumstudio.socketio.SocketIOServer;
 import com.percy.fish_hunter.converter.GameConverter;
+import com.percy.fish_hunter.dto.GamePlayResponse;
 import com.percy.fish_hunter.dto.GameResultDto;
 import com.percy.fish_hunter.dto.PlayerDto;
 import com.percy.fish_hunter.models.Game;
@@ -97,6 +98,14 @@ public class GameProcessingSupport {
             .sendEvent(SocketEventMessage.GAME_RESULT, gameResult);
     }
 
+    private GamePlayResponse generateGamePlayResponse(Integer roomId, long timeLeft) {
+        var fishAssets = gameService.generateSeriesFishAsset(roomId);
+        return GamePlayResponse.builder()
+            .timeLeft(timeLeft)
+            .fishAssets(fishAssets)
+            .build();
+    }
+
     @Scheduled(fixedRate = 1000)
     @Transactional
     public void handleGameTime() {
@@ -108,17 +117,11 @@ public class GameProcessingSupport {
             if (passedTime >= DEFAULT_GAME_TIME + DEFAULT_READY_TIME) {
                 finishGame(game);
             } else if (passedTime >= DEFAULT_READY_TIME) {
+                var timeLeft = (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000;
+                var gamePlayResponse = generateGamePlayResponse(game.getRoomId(), timeLeft);
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
-                        .sendEvent(SocketEventMessage.TIME_LEFT, (int) (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000);
+                        .sendEvent(SocketEventMessage.GAME_PLAY, gamePlayResponse);
             }
         });
-    }
-
-    @Scheduled(fixedRate = 1000)
-    public void emitGenerateFishAsset() {
-        var res = gameService.generateSeriesFishAsset(10);
-
-        server.getRoomOperations("")
-                .sendEvent(SocketEventMessage.GENERATE_FISH_SERIES, res);
     }
 }

@@ -21,6 +21,7 @@ import java.util.Date;
 public class RoomMember {
 	@EmbeddedId
 	private RoomMemberId primaryKey = new RoomMemberId();
+	private boolean isDisconnected;
 	@Column(updatable = false)
 	@CreatedDate
 	private Date createdDate;

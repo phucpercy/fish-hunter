@@ -5,7 +5,11 @@ import com.percy.fish_hunter.converter.PlayerGameConverter;
 import com.percy.fish_hunter.dto.AddPointDto;
 import com.percy.fish_hunter.dto.FishAssetResponse;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
+import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.support.SocketEventMessage;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +24,17 @@ import java.util.Random;
 @AllArgsConstructor(onConstructor_ = @Autowired)
 public class GameService {
 
-    private static int MAX_SCREEN_WIDTH = 1920;
-    private static int MAX_SCREEN_HEIGHT = 1080;
+    private static final int DEFAULT_GENERATING_FISH_AMOUNT = 10;
+    private static final int MAX_SCREEN_WIDTH = 1920;
+    private static final int MAX_SCREEN_HEIGHT = 1080;
     private static final Random random = new Random();
 
     private final SocketIOServer server;
     private final PlayerGameRepository playerGameRepository;
     private final PlayerGameConverter playerGameConverter;
+    private final RoomMemberRepository roomMemberRepository;
+
+    private static Map<Integer, Map<UUID, FishAssetResponse>> fishMap = new HashMap<>();
 
     private int generateRandomNumberInRange(int min, int max) {
         return random.ints(min, max)
@@ -41,7 +49,7 @@ public class GameService {
         var y = generateRandomNumberInRange(0, MAX_SCREEN_HEIGHT);
 
         x = x < MAX_SCREEN_WIDTH / 2 ? 0 : MAX_SCREEN_WIDTH;
-        angle = Math.atan2(y - MAX_SCREEN_HEIGHT / 2, x - MAX_SCREEN_WIDTH / 2) * 180 / Math.PI;
+        angle = Math.atan2(y - MAX_SCREEN_HEIGHT / 2d, x - MAX_SCREEN_WIDTH / 2d) * 180 / Math.PI;
 
         if (angle < 45 && angle >= -45) {  //right
             angle = generateRandomNumberInRange(135, 225);
@@ -57,6 +65,7 @@ public class GameService {
         var vy = Math.sin(angle);
 
         return FishAssetResponse.builder()
+                .id(UUID.randomUUID())
                 .x(x)
                 .y(y)
                 .vx(vx)
@@ -69,6 +78,16 @@ public class GameService {
     }
 
     public void addPoint(AddPointDto addPointDto) {
+        var inGameRoom = fishMap.get(addPointDto.getRoomId());
+        if (inGameRoom == null) {
+            return;
+        }
+
+        var fishAsset = inGameRoom.get(addPointDto.getFishId());
+        if (fishAsset == null) {
+            return;
+        }
+
         var playerGame = playerGameRepository
                 .findOneByPrimaryKeyGameIdAndPrimaryKeyPlayerIdAndFinishDateIsNull(
                         addPointDto.getGameId(),
@@ -83,13 +102,30 @@ public class GameService {
         }
     }
 
-    public Collection<FishAssetResponse> generateSeriesFishAsset(int amount) {
+    public Collection<FishAssetResponse> generateSeriesFishAsset(Integer roomId) {
         Collection<FishAssetResponse> res = new ArrayList<>();
 
-        for (int i = 0; i < amount; ++i) {
-            res.add(generateFishAsset());
+        for (int i = 0; i < DEFAULT_GENERATING_FISH_AMOUNT; ++i) {
+            var newFishAsset = generateFishAsset();
+            var inRoomFishMap = fishMap.get(roomId);
+            if (inRoomFishMap != null) {
+                inRoomFishMap.putIfAbsent(newFishAsset.getId(), newFishAsset);
+            } else {
+                inRoomFishMap = new HashMap<>();
+                inRoomFishMap.putIfAbsent(newFishAsset.getId(), newFishAsset);
+            }
+            res.add(newFishAsset);
         }
 
         return res;
+    }
+
+    public void handleInGameDisconnectRoomMember(int playerId) {
+        var roomMember = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(playerId);
+
+        if (roomMember != null) {
+            roomMember.setDisconnected(true);
+            roomMemberRepository.save(roomMember);
+        }
     }
 }
