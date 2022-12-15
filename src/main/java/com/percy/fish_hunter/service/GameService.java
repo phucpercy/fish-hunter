@@ -4,20 +4,16 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.percy.fish_hunter.converter.PlayerGameConverter;
 import com.percy.fish_hunter.dto.AddPointDto;
 import com.percy.fish_hunter.dto.FishAssetResponse;
+import com.percy.fish_hunter.dto.PointChangeResponse;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.support.SocketEventMessage;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -94,11 +90,16 @@ public class GameService {
                         addPointDto.getPlayerId()
                 );
         if (playerGame != null) {
-            playerGame.setPoint(playerGame.getPoint() + addPointDto.getPoint());
+            playerGame.setPoint(playerGame.getPoint() + fishAsset.getLevel() * 10);
             playerGameRepository.save(playerGame);
 
-            var res = playerGameConverter.toDto(playerGame);
-            server.getRoomOperations(String.valueOf(addPointDto.getRoomId())).sendEvent(SocketEventMessage.POINT_CHANGED, res);
+            var res = PointChangeResponse.builder()
+                    .point(playerGame.getPoint())
+                    .playerId(playerGame.getPlayer().getId())
+                    .fishId(fishAsset.getId())
+                    .build();
+            server.getRoomOperations(String.valueOf(addPointDto.getRoomId()))
+                    .sendEvent(SocketEventMessage.POINT_CHANGED, res);
         }
     }
 
