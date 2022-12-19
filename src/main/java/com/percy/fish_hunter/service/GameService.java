@@ -1,12 +1,14 @@
 package com.percy.fish_hunter.service;
 
 import com.corundumstudio.socketio.SocketIOServer;
-import com.percy.fish_hunter.converter.PlayerGameConverter;
+import com.percy.fish_hunter.converter.RoomConverter;
 import com.percy.fish_hunter.dto.AddPointDto;
 import com.percy.fish_hunter.dto.FishAssetResponse;
 import com.percy.fish_hunter.dto.PointChangeResponse;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
+import com.percy.fish_hunter.repository.RoomRepository;
+import com.percy.fish_hunter.support.SocketClientManagement;
 import com.percy.fish_hunter.support.SocketEventMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+
+import static com.percy.fish_hunter.support.SocketClientManagement.DEFAULT_GENERAL_ROOM;
 
 @Slf4j
 @Service
@@ -27,8 +31,10 @@ public class GameService {
 
     private final SocketIOServer server;
     private final PlayerGameRepository playerGameRepository;
-    private final PlayerGameConverter playerGameConverter;
     private final RoomMemberRepository roomMemberRepository;
+    private final SocketClientManagement socketClientManagement;
+    private final RoomConverter roomConverter;
+    private final RoomRepository roomRepository;
 
     private static Map<Integer, Map<UUID, FishAssetResponse>> fishMap = new HashMap<>();
 
@@ -122,11 +128,15 @@ public class GameService {
     }
 
     public void handleInGameDisconnectRoomMember(int playerId) {
-        var roomMember = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(playerId);
+        roomMemberRepository.deleteRoomMemberByPrimaryKeyPlayerId(playerId);
+        var disconnectedClient = socketClientManagement.removeDisconnectedClient(playerId);
 
-        if (roomMember != null) {
-            roomMember.setDisconnected(true);
-            roomMemberRepository.save(roomMember);
-        }
+        disconnectedClient.getAllRooms().forEach(room -> {
+            if (!room.equals(DEFAULT_GENERAL_ROOM) && !room.equals("")) {
+                var roomId = Integer.parseInt(room);
+                var roomDto = roomConverter.toDto(roomRepository.findOneById(roomId));
+                server.getRoomOperations(room).sendEvent(SocketEventMessage.MEMBER_LEFT, roomDto);
+            }
+        });
     }
 }

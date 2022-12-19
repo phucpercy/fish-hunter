@@ -44,10 +44,10 @@ public class PlayerService {
         return roomConverter.toListDto(rooms);
     }
 
-    private boolean isPlayerInRoom(Player player, Room room) {
-        List<RoomMember> roomMembers = room.getRoomMembers();
+    private boolean isPlayerInRoom(Player player) {
+        RoomMember roomMember = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(player.getId());
 
-        return roomMembers.stream().anyMatch(e -> e.getPlayer().equals(player));
+        return roomMember != null;
     }
 
     public void publishRoomMembersChangeEvent() {
@@ -109,15 +109,15 @@ public class PlayerService {
     public RoomDto join(RoomDto roomDto, Player player) throws Exception {
         Room room = roomRepository.findOneById(roomDto.getId());
 
-        if (!room.getStatus().equals(RoomStatus.WAITING) || isPlayerInRoom(player, room)
+        if (!room.getStatus().equals(RoomStatus.WAITING) || isPlayerInRoom(player)
                 || room.getRoomMembers().size() >= room.getRoomType().getNumberOfPlayerByType()) {
             throw new Exception("This room not available!");
         }
 
-        RoomMember roomMember = roomMemberRepository.save(createNewMemberInRoom(player, room));
+        RoomMember newRoomMember = roomMemberRepository.save(createNewMemberInRoom(player, room));
 
-        Room entity = roomMember.getRoom();
-        entity.getRoomMembers().add(roomMember);
+        Room entity = newRoomMember.getRoom();
+        entity.getRoomMembers().add(newRoomMember);
 
         publishRoomMembersChangeEvent();
         joinSocketServerByRoom(room, player);

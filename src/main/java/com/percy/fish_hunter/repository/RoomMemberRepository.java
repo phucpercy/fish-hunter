@@ -8,4 +8,6 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Integer>
     RoomMember findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(int playerId);
 
     void deleteRoomMemberByPrimaryKeyRoomIdAndPrimaryKeyPlayerId(int roomId, int playerId);
+
+    void deleteRoomMemberByPrimaryKeyPlayerId(int playerId);
 }

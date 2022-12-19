@@ -28,7 +28,7 @@ public class PlayerMessageEventHandler {
         client.sendEvent("getAllRooms", res);
     }
 
-    @OnEvent("common_data")
+    @OnEvent("commonData")
     public void onEvent(CommonDataInRoomDto data) {
         playerService.transferCommonDataForMemberInRoom(data);
     }

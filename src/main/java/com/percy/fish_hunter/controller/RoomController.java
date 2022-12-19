@@ -48,7 +48,7 @@ public class RoomController {
             Player player = (Player) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             RoomDto response = playerService.leave(roomDto, player);
             server.getRoomOperations(String.valueOf(response.getId()))
-                    .sendEvent(SocketEventMessage.JOIN_GAME, response);
+                    .sendEvent(SocketEventMessage.MEMBER_LEFT, response);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

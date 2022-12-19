@@ -9,7 +9,6 @@ import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.repository.RoomRepository;
 import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.support.SocketClientManagement;
-import com.percy.fish_hunter.support.SocketEventMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,13 +49,5 @@ public class MessageEventHandler {
 	public void onDisconnect(SocketIOClient client) {
 		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
 		gameService.handleInGameDisconnectRoomMember(playerId);
-		var disconnectedClient = socketClientManagement.removeDisconnectedClient(playerId);
-		disconnectedClient.getAllRooms().forEach(room -> {
-			if (!room.equals(DEFAULT_GENERAL_ROOM) && !room.equals("")) {
-				var roomId = Integer.parseInt(room);
-				var roomDto = roomConverter.toDto(roomRepository.findOneById(roomId));
-				server.getRoomOperations(room).sendEvent(SocketEventMessage.MEMBER_LEFT, roomDto);
-			}
-		});
 	}
 }
