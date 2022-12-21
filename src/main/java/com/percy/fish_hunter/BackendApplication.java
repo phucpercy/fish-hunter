@@ -28,7 +28,6 @@ public class BackendApplication {
 			InetAddress ip=InetAddress.getLocalHost();
 			this.host = ip.getHostAddress();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
