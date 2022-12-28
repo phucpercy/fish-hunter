@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class SocketEventMessage {
 
+    public static final String INIT_GAME = "init_game";
     public static final String GAME_PLAY = "game_play";
     public static final String GAME_RESULT = "game_result";
     public static final String ROOM_MEMBERS_CHANGED = "room_members_changed";

@@ -3,7 +3,7 @@ package com.percy.fish_hunter.listenner;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
-import com.percy.fish_hunter.repository.RoomMemberRepository;
+import com.percy.fish_hunter.repository.PlayerRepository;
 import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.support.SocketClientManagement;
 import lombok.AllArgsConstructor;
@@ -21,21 +21,20 @@ public class MessageEventHandler {
 	private static final String HANDSHAKE_DATA_PLAYER_PARAM = "playerId";
 
 	private final SocketClientManagement socketClientManagement;
-	private final RoomMemberRepository roomMemberRepository;
+	private final PlayerRepository playerRepository;
 	private final GameService gameService;
 
 	@OnConnect
 	public void onconnect(SocketIOClient client) {
-		if (client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM) == null) {
-			client.disconnect();
-		}
 		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
-		var currentRoom = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(playerId);
-		if (currentRoom != null) {
-			client.joinRoom(String.valueOf(currentRoom.getRoom().getId()));
-		} else {
-			client.joinRoom(DEFAULT_GENERAL_ROOM);
+		var player = playerRepository.findOneById(playerId);
+
+		if (client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM) == null || player == null) {
+			client.disconnect();
+			return;
 		}
+
+		client.joinRoom(DEFAULT_GENERAL_ROOM);
 		socketClientManagement.addConnectedClient(playerId, client);
 	}
 

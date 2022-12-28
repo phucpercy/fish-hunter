@@ -1,10 +1,11 @@
 package com.percy.fish_hunter.dto;
 
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Builder
 @Getter
@@ -21,4 +22,6 @@ public class FishAssetResponse {
     private int level;
     private int maxWidth;
     private int maxHeight;
+    @Builder.Default
+    private int speed = 1;
 }

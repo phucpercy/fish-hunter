@@ -4,6 +4,7 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.percy.fish_hunter.converter.RoomConverter;
 import com.percy.fish_hunter.dto.AddPointDto;
 import com.percy.fish_hunter.dto.FishAssetResponse;
+import com.percy.fish_hunter.dto.GamePlayResponse;
 import com.percy.fish_hunter.dto.PointChangeResponse;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
@@ -131,12 +132,26 @@ public class GameService {
         roomMemberRepository.deleteRoomMemberByPrimaryKeyPlayerId(playerId);
         var disconnectedClient = socketClientManagement.removeDisconnectedClient(playerId);
 
-        disconnectedClient.getAllRooms().forEach(room -> {
-            if (!room.equals(DEFAULT_GENERAL_ROOM) && !room.equals("")) {
-                var roomId = Integer.parseInt(room);
-                var roomDto = roomConverter.toDto(roomRepository.findOneById(roomId));
-                server.getRoomOperations(room).sendEvent(SocketEventMessage.MEMBER_LEFT, roomDto);
-            }
-        });
+        if (disconnectedClient != null) {
+            disconnectedClient.getAllRooms().forEach(room -> {
+                if (!room.equals(DEFAULT_GENERAL_ROOM) && !room.equals("")) {
+                    var roomId = Integer.parseInt(room);
+                    var roomDto = roomConverter.toDto(roomRepository.findOneById(roomId));
+                    server.getRoomOperations(room).sendEvent(SocketEventMessage.MEMBER_LEFT, roomDto);
+                }
+            });
+        }
+    }
+
+    public GamePlayResponse generateGamePlayResponse(Integer roomId, long timeLeft) {
+        var room = roomRepository.findOneById(roomId);
+        var roomDto = roomConverter.toDto(room);
+
+        var fishAssets = generateSeriesFishAsset(roomId);
+        return GamePlayResponse.builder()
+                .timeLeft(timeLeft)
+                .fishAssets(fishAssets)
+                .room(roomDto)
+                .build();
     }
 }

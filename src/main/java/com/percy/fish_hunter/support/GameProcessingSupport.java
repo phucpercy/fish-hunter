@@ -1,12 +1,13 @@
 package com.percy.fish_hunter.support;
 
 import com.corundumstudio.socketio.SocketIOServer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.percy.fish_hunter.converter.GameConverter;
-import com.percy.fish_hunter.dto.GamePlayResponse;
 import com.percy.fish_hunter.dto.GameResultDto;
 import com.percy.fish_hunter.dto.PlayerDto;
 import com.percy.fish_hunter.models.Game;
 import com.percy.fish_hunter.models.GameStatus;
+import com.percy.fish_hunter.models.RoomStatus;
 import com.percy.fish_hunter.repository.GameRepository;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
@@ -29,6 +30,7 @@ import java.util.Date;
 @AllArgsConstructor(onConstructor_ = @Autowired)
 public class GameProcessingSupport {
 
+    public static final int DEFAULT_INIT_TIME = 5 * 1000;
     public static final int DEFAULT_GAME_TIME = 60 * 1000;
     public static final int DEFAULT_READY_TIME = 10 * 1000;
     public static final int DEFAULT_TOTAL_PLAY_TIME = DEFAULT_GAME_TIME + DEFAULT_READY_TIME;
@@ -57,6 +59,7 @@ public class GameProcessingSupport {
                 roomMember.getPlayer().getId());
         });
         room.setRoomMembers(new ArrayList<>());
+        room.setStatus(RoomStatus.WAITING);
         roomRepository.save(room);
 
         var playerGames = game.getPlayerGames();
@@ -98,14 +101,6 @@ public class GameProcessingSupport {
             .sendEvent(SocketEventMessage.GAME_RESULT, gameResult);
     }
 
-    private GamePlayResponse generateGamePlayResponse(Integer roomId, long timeLeft) {
-        var fishAssets = gameService.generateSeriesFishAsset(roomId);
-        return GamePlayResponse.builder()
-            .timeLeft(timeLeft)
-            .fishAssets(fishAssets)
-            .build();
-    }
-
     @Scheduled(fixedRate = 1000)
     @Transactional
     public void handleGameTime() {
@@ -114,13 +109,38 @@ public class GameProcessingSupport {
         currentGames.forEach(game -> {
             Date createdAt = game.getCreatedDate();
             var passedTime = currentTimeEpoch - createdAt.toInstant().toEpochMilli();
-            if (passedTime >= DEFAULT_GAME_TIME + DEFAULT_READY_TIME) {
+            if (passedTime >= DEFAULT_GAME_TIME + DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
                 finishGame(game);
-            } else if (passedTime >= DEFAULT_READY_TIME) {
+            } else if (passedTime >= DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
                 var timeLeft = (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000;
-                var gamePlayResponse = generateGamePlayResponse(game.getRoomId(), timeLeft);
+                var gamePlayResponse = gameService.generateGamePlayResponse(game.getRoomId(), timeLeft);
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
                         .sendEvent(SocketEventMessage.GAME_PLAY, gamePlayResponse);
+            } else if (passedTime >= DEFAULT_INIT_TIME) {
+                var res = new ObjectMapper().createObjectNode();
+                res.put("time", GameProcessingSupport.DEFAULT_READY_TIME / 1000);
+                res.put("gameId", game.getId());
+
+                server.getRoomOperations(String.valueOf(game.getRoomId())).sendEvent(SocketEventMessage.START_GAME, res);
+            }
+        });
+    }
+
+    @Scheduled(fixedRate = 1000)
+    @Transactional
+    public void handleAutoStartGame() {
+        var nonEmptyRooms = roomRepository.findAllByRoomMembersIsNotNullAndStatus(RoomStatus.WAITING);
+        nonEmptyRooms.forEach(room -> {
+            if (room.getRoomMembers().size() == room.getRoomType().getNumberOfPlayerByType()) {
+                room.setStatus(RoomStatus.IN_PROGRESS);
+                roomRepository.save(room);
+                Game newGame = new Game();
+                newGame.setRoomId(room.getId());
+                newGame.setStatus(GameStatus.IN_PROGRESS);
+                gameRepository.save(newGame);
+
+                room.getRoomMembers().forEach(
+                        roomMember -> playerGameRepository.save(playerService.createNewPlayerInGame(roomMember.getPlayer(), newGame)));
             }
         });
     }

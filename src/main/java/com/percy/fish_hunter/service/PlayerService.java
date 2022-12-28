@@ -1,7 +1,6 @@
 package com.percy.fish_hunter.service;
 
 import com.corundumstudio.socketio.SocketIOServer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.percy.fish_hunter.converter.RoomConverter;
 import com.percy.fish_hunter.dto.CommonDataInRoomDto;
 import com.percy.fish_hunter.dto.RoomDto;
@@ -10,7 +9,6 @@ import com.percy.fish_hunter.repository.GameRepository;
 import com.percy.fish_hunter.repository.PlayerGameRepository;
 import com.percy.fish_hunter.repository.RoomMemberRepository;
 import com.percy.fish_hunter.repository.RoomRepository;
-import com.percy.fish_hunter.support.GameProcessingSupport;
 import com.percy.fish_hunter.support.SocketClientManagement;
 import com.percy.fish_hunter.support.SocketEventMessage;
 import lombok.AllArgsConstructor;
@@ -56,30 +54,12 @@ public class PlayerService {
         server.getAllClients().forEach(client -> client.sendEvent(SocketEventMessage.ROOM_MEMBERS_CHANGED, res));
     }
 
-    private void handleAutoStartGame(Room room) {
-        if (room.getRoomMembers().size() == room.getRoomType().getNumberOfPlayerByType()) {
-
-            Game newGame = new Game();
-            newGame.setRoomId(room.getId());
-            newGame.setStatus(GameStatus.IN_PROGRESS);
-            gameRepository.save(newGame);
-
-            room.getRoomMembers().forEach(
-                roomMember -> playerGameRepository.save(createNewPlayerInGame(roomMember.getPlayer(), newGame)));
-
-            var res = new ObjectMapper().createObjectNode();
-            res.put("time", GameProcessingSupport.DEFAULT_READY_TIME / 1000);
-            res.put("gameId", newGame.getId());
-
-            server.getRoomOperations(String.valueOf(room.getId())).sendEvent(SocketEventMessage.START_GAME, res);
-        }
-    }
-
     private void joinSocketServerByRoom(Room room, Player player) {
         var socketClient = socketClientManagement.getClientByPlayerId(player.getId());
         if (socketClient != null) {
             socketClient.leaveRoom(DEFAULT_GENERAL_ROOM);
             socketClient.joinRoom(String.valueOf(room.getId()));
+            socketClient.sendEvent(SocketEventMessage.INIT_GAME, roomConverter.toDto(room));
         }
     }
 
@@ -92,7 +72,7 @@ public class PlayerService {
         return roomMember;
     }
 
-    private PlayerGame createNewPlayerInGame(Player player, Game game) {
+    public PlayerGame createNewPlayerInGame(Player player, Game game) {
         PlayerGame playerGame = new PlayerGame();
 
         playerGame.setGame(game);
@@ -120,10 +100,9 @@ public class PlayerService {
         entity.getRoomMembers().add(newRoomMember);
 
         publishRoomMembersChangeEvent();
-        joinSocketServerByRoom(room, player);
 
         Room newRoom = roomRepository.findOneById(roomDto.getId());
-        handleAutoStartGame(newRoom);
+        joinSocketServerByRoom(newRoom, player);
 
         return roomConverter.toDto(entity);
     }

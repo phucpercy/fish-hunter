@@ -17,8 +17,10 @@ public class GameServiceTest {
 
     @Test
     void testGenerateFish() throws JsonProcessingException {
-        var res = gameService.generateFishAsset();
-        log.info("random fish asset {}", new ObjectMapper().writeValueAsString(res));
+        for (int i = 0; i < 10; ++i) {
+            var res = gameService.generateFishAsset();
+            log.info("random fish asset {}", new ObjectMapper().writeValueAsString(res));
+        }
     }
 
 }
