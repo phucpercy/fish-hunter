@@ -13,5 +13,5 @@ public interface RoomRepository extends JpaRepository<Room, Integer> {
 
     Room findOneById(int id);
 
-    List<Room> findAllByRoomMembersIsNotNullAndStatus(RoomStatus status);
+    List<Room> findAllByStatus(RoomStatus status);
 }

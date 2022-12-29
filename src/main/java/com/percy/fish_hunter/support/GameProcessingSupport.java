@@ -111,12 +111,14 @@ public class GameProcessingSupport {
             var passedTime = currentTimeEpoch - createdAt.toInstant().toEpochMilli();
             if (passedTime >= DEFAULT_GAME_TIME + DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
                 finishGame(game);
-            } else if (passedTime >= DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
+            } else if (passedTime >= DEFAULT_READY_TIME) {
                 var timeLeft = (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000;
                 var gamePlayResponse = gameService.generateGamePlayResponse(game.getRoomId(), timeLeft);
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
                         .sendEvent(SocketEventMessage.GAME_PLAY, gamePlayResponse);
-            } else if (passedTime >= DEFAULT_INIT_TIME) {
+            } else if (passedTime >= DEFAULT_INIT_TIME && passedTime < DEFAULT_INIT_TIME + 1000) {
+                log.info("==================");
+                log.info("CUR PASS TIME: {}", passedTime / 1000);
                 var res = new ObjectMapper().createObjectNode();
                 res.put("time", GameProcessingSupport.DEFAULT_READY_TIME / 1000);
                 res.put("gameId", game.getId());
@@ -129,7 +131,7 @@ public class GameProcessingSupport {
     @Scheduled(fixedRate = 1000)
     @Transactional
     public void handleAutoStartGame() {
-        var nonEmptyRooms = roomRepository.findAllByRoomMembersIsNotNullAndStatus(RoomStatus.WAITING);
+        var nonEmptyRooms = roomRepository.findAllByStatus(RoomStatus.READY);
         nonEmptyRooms.forEach(room -> {
             if (room.getRoomMembers().size() == room.getRoomType().getNumberOfPlayerByType()) {
                 room.setStatus(RoomStatus.IN_PROGRESS);

@@ -94,6 +94,11 @@ public class PlayerService {
             throw new Exception("This room not available!");
         }
 
+        if (room.getRoomMembers().size() + 1 == room.getRoomType().getNumberOfPlayerByType()) {
+            room.setStatus(RoomStatus.READY);
+            roomRepository.save(room);
+        }
+
         RoomMember newRoomMember = roomMemberRepository.save(createNewMemberInRoom(player, room));
 
         Room entity = newRoomMember.getRoom();
@@ -103,6 +108,7 @@ public class PlayerService {
 
         Room newRoom = roomRepository.findOneById(roomDto.getId());
         joinSocketServerByRoom(newRoom, player);
+
 
         return roomConverter.toDto(entity);
     }
