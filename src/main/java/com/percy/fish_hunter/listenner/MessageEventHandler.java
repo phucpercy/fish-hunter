@@ -2,7 +2,6 @@ package com.percy.fish_hunter.listenner;
 
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.annotation.OnConnect;
-import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.percy.fish_hunter.repository.PlayerRepository;
 import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.support.SocketClientManagement;
@@ -10,8 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import static com.percy.fish_hunter.support.SocketClientManagement.DEFAULT_GENERAL_ROOM;
 
 @Component
 @Slf4j
@@ -34,13 +31,14 @@ public class MessageEventHandler {
 			return;
 		}
 
-		client.joinRoom(DEFAULT_GENERAL_ROOM);
-		socketClientManagement.addConnectedClient(playerId, client);
+//		client.joinRoom(DEFAULT_GENERAL_ROOM);
+//		socketClientManagement.addConnectedClient(playerId, client);
+		gameService.handleRejoinSocketRoom(playerId, client);
 	}
 
-	@OnDisconnect
-	public void onDisconnect(SocketIOClient client) {
-		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
-		gameService.handleInGameDisconnectRoomMember(playerId);
-	}
+//	@OnDisconnect
+//	public void onDisconnect(SocketIOClient client) {
+//		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
+//		gameService.handleInGameDisconnectRoomMember(playerId);
+//	}
 }

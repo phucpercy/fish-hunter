@@ -1,5 +1,6 @@
 package com.percy.fish_hunter.service;
 
+import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.percy.fish_hunter.converter.RoomConverter;
 import com.percy.fish_hunter.dto.AddPointDto;
@@ -153,5 +154,16 @@ public class GameService {
                 .fishAssets(fishAssets)
                 .room(roomDto)
                 .build();
+    }
+
+    public void handleRejoinSocketRoom(Integer playerId, SocketIOClient client) {
+        var roomMember = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(playerId);
+
+        if (roomMember != null) {
+            client.joinRoom(String.valueOf(roomMember.getRoom().getId()));
+        } else {
+            client.joinRoom(DEFAULT_GENERAL_ROOM);
+        }
+        socketClientManagement.addConnectedClient(playerId, client);
     }
 }

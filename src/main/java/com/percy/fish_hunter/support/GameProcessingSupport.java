@@ -33,7 +33,7 @@ public class GameProcessingSupport {
     public static final int DEFAULT_INIT_TIME = 5 * 1000;
     public static final int DEFAULT_GAME_TIME = 60 * 1000;
     public static final int DEFAULT_READY_TIME = 10 * 1000;
-    public static final int DEFAULT_TOTAL_PLAY_TIME = DEFAULT_GAME_TIME + DEFAULT_READY_TIME;
+    public static final int DEFAULT_TOTAL_PLAY_TIME = DEFAULT_GAME_TIME + DEFAULT_READY_TIME + DEFAULT_INIT_TIME;
 
     private final GameService gameService;
     private final RoomRepository roomRepository;
@@ -109,9 +109,9 @@ public class GameProcessingSupport {
         currentGames.forEach(game -> {
             Date createdAt = game.getCreatedDate();
             var passedTime = currentTimeEpoch - createdAt.toInstant().toEpochMilli();
-            if (passedTime >= DEFAULT_GAME_TIME + DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
+            if (passedTime >= DEFAULT_TOTAL_PLAY_TIME) {
                 finishGame(game);
-            } else if (passedTime >= DEFAULT_READY_TIME) {
+            } else if (passedTime >= DEFAULT_READY_TIME + DEFAULT_INIT_TIME) {
                 var timeLeft = (DEFAULT_TOTAL_PLAY_TIME - passedTime) / 1000;
                 var gamePlayResponse = gameService.generateGamePlayResponse(game.getRoomId(), timeLeft);
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
@@ -145,5 +145,10 @@ public class GameProcessingSupport {
                         roomMember -> playerGameRepository.save(playerService.createNewPlayerInGame(roomMember.getPlayer(), newGame)));
             }
         });
+    }
+
+    @Scheduled(fixedRate = 5 * 60 * 1000)
+    public void autoClearRoomMember() {
+
     }
 }
