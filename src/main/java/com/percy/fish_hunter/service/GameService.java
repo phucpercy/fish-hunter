@@ -130,7 +130,7 @@ public class GameService {
     }
 
     public void handleInGameDisconnectRoomMember(int playerId) {
-        roomMemberRepository.deleteRoomMemberByPrimaryKeyPlayerId(playerId);
+//        roomMemberRepository.deleteRoomMemberByPrimaryKeyPlayerId(playerId);
         var disconnectedClient = socketClientManagement.removeDisconnectedClient(playerId);
 
         if (disconnectedClient != null) {
@@ -157,6 +157,12 @@ public class GameService {
     }
 
     public void handleRejoinSocketRoom(Integer playerId, SocketIOClient client) {
+        var connectedClient = socketClientManagement.getClientByPlayerId(playerId);
+        if (connectedClient != null) {
+            connectedClient.disconnect();
+            socketClientManagement.removeDisconnectedClient(playerId);
+        }
+
         var roomMember = roomMemberRepository.findOneByPrimaryKeyPlayerIdOrderByCreatedDateDesc(playerId);
 
         if (roomMember != null) {

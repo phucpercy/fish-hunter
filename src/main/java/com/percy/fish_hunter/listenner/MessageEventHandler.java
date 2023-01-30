@@ -2,6 +2,7 @@ package com.percy.fish_hunter.listenner;
 
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.annotation.OnConnect;
+import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.percy.fish_hunter.repository.PlayerRepository;
 import com.percy.fish_hunter.service.GameService;
 import com.percy.fish_hunter.support.SocketClientManagement;
@@ -36,9 +37,9 @@ public class MessageEventHandler {
 		gameService.handleRejoinSocketRoom(playerId, client);
 	}
 
-//	@OnDisconnect
-//	public void onDisconnect(SocketIOClient client) {
-//		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
-//		gameService.handleInGameDisconnectRoomMember(playerId);
-//	}
+	@OnDisconnect
+	public void onDisconnect(SocketIOClient client) {
+		int playerId = Integer.parseInt(client.getHandshakeData().getSingleUrlParam(HANDSHAKE_DATA_PLAYER_PARAM));
+		gameService.handleInGameDisconnectRoomMember(playerId);
+	}
 }

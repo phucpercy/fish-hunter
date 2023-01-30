@@ -117,8 +117,6 @@ public class GameProcessingSupport {
                 server.getRoomOperations(String.valueOf(game.getRoomId()))
                         .sendEvent(SocketEventMessage.GAME_PLAY, gamePlayResponse);
             } else if (passedTime >= DEFAULT_INIT_TIME && passedTime < DEFAULT_INIT_TIME + 1000) {
-                log.info("==================");
-                log.info("CUR PASS TIME: {}", passedTime / 1000);
                 var res = new ObjectMapper().createObjectNode();
                 res.put("time", GameProcessingSupport.DEFAULT_READY_TIME / 1000);
                 res.put("gameId", game.getId());
@@ -147,8 +145,8 @@ public class GameProcessingSupport {
         });
     }
 
-    @Scheduled(fixedRate = 5 * 60 * 1000)
-    public void autoClearRoomMember() {
-
-    }
+//    @Scheduled(fixedRate = 5 * 60 * 1000)
+//    public void autoClearRoomMember() {
+//
+//    }
 }
